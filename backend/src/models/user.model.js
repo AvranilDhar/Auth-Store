@@ -28,8 +28,23 @@ const userSchema = new Schema(
             type : String,
             required : true,
             minlength : 6,
-            maxlength : 15,
             trim : true
+        },
+        isVerified: { 
+            type: Boolean, 
+            default: false 
+        },
+        emailVerificationToken: { 
+            type: String 
+        },
+        emailVerificationExpiry: { 
+            type: Date 
+        },
+        resetPasswordToken: { 
+            type: String 
+        },
+        resetPasswordExpiry: { 
+            type: Date 
         },
     },
     { 
