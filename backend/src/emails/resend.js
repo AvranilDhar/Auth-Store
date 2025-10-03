@@ -2,6 +2,7 @@ import { resend } from "./resend.config.js";
 import { VERIFICATION_EMAIL_TEMPLATE } from "./emailTemplate.js";
 import { PASSWORD_RESET_REQUEST_TEMPLATE } from "./emailTemplate.js";
 import { PASSWORD_RESET_SUCCESS_TEMPLATE } from "./emailTemplate.js";
+import { WELCOME_EMAIL_TEMPLATE } from "./emailTemplate.js";
 
 const sendVerificationEmail = async function (recipientEmail , otp) {
     try {
@@ -11,8 +12,9 @@ const sendVerificationEmail = async function (recipientEmail , otp) {
             subject: 'Verify your account',
             html: VERIFICATION_EMAIL_TEMPLATE.replace("{verificationCode}",otp),
           });
-
-        return { success : true , response };
+          
+           console.log( "Email sent successfully " , response );
+           
     } catch (error) {
         console.error("Error sending verification email:", error);
         return { success: false, error };
@@ -28,7 +30,7 @@ const sendPasswordResetEmail = async function (recipientEmail , resetURL) {
             html: PASSWORD_RESET_REQUEST_TEMPLATE.replace("{resetURL}",resetURL),
           });
 
-        return { success : true , response };
+          console.log( "Email sent successfully " , response );
     } catch (error) {
         console.error("Error sending verification email:", error);
         return { success: false, error };
@@ -44,7 +46,23 @@ const sendPasswordSuccessEmail = async function (recipientEmail) {
             html: PASSWORD_RESET_SUCCESS_TEMPLATE,
           });
 
-        return { success : true , response };
+          console.log( "Email sent successfully " , response );
+    } catch (error) {
+        console.error("Error sending verification email:", error);
+        return { success: false, error };
+    }
+}
+
+const sendWelcomeEmail = async function (recipientEmail,recipientName) {
+    try {
+        const response = await resend.emails.send({
+            from: 'Acme <onboarding@resend.dev>',
+            to: `${recipientEmail}`,
+            subject: `Welcome Email`,
+            html: WELCOME_EMAIL_TEMPLATE.replace(`{UserName}`,recipientName),
+          });
+
+          console.log( "Email sent successfully " , response );
     } catch (error) {
         console.error("Error sending verification email:", error);
         return { success: false, error };
@@ -54,5 +72,6 @@ const sendPasswordSuccessEmail = async function (recipientEmail) {
 export {
     sendVerificationEmail,
     sendPasswordResetEmail,
-    sendPasswordSuccessEmail
+    sendPasswordSuccessEmail,
+    sendWelcomeEmail
 }
