@@ -287,7 +287,7 @@ const WELCOME_EMAIL_TEMPLATE = `
 														<tr>
 															<td class="pad" style="padding-left:15px;padding-right:10px;">
 																<div style="color:#052d3d;font-family:'Lato', Tahoma, Verdana, Segoe, sans-serif;font-size:34px;line-height:1.5;text-align:center;mso-line-height-alt:51px;">
-																	<p style="margin: 0; word-break: break-word;"><strong><span style="word-break: break-word;"><span style="word-break: break-word; color: rgb(33,144,227);">*UserName*</span></span></strong></p>
+																	<p style="margin: 0; word-break: break-word;"><strong><span style="word-break: break-word;"><span style="word-break: break-word; color: rgb(33,144,227);">{UserName}</span></span></strong></p>
 																</div>
 															</td>
 														</tr>
