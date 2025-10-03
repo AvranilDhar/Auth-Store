@@ -2,8 +2,12 @@ import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
+import { sendPasswordResetEmail } from "../emails/resend.js";
+import { sendPasswordSuccessEmail } from "../emails/resend.js";
+import { sendVerificationEmail } from "../emails/resend.js";
 
 const signup = asyncHandler(async function (req,res) {
+
     const {
         username,
         email,
@@ -11,29 +15,64 @@ const signup = asyncHandler(async function (req,res) {
         password
     } = req.body; // in app.js --> app.use(express.json())
 
-    if(!username || !email || !phonenumber || !password) throw new ApiError(400,"All fields are required");
-    if(password.length<6 || password.length>15) throw new ApiError(400,"Password must be between 6 and 15 characters");
-    if(!/^[a-zA-Z0-9]+$/.test(username)) throw new ApiError(400,"Username must contain only letters and numbers");
-    if(!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) throw new ApiError(400,"Invalid email");
-    if(!/^[0-9]{10}$/.test(phonenumber)) throw new ApiError(400,"Invalid phone number");
+    //validations
+
+    if(!username || !email || !phonenumber || !password) 
+        throw new ApiError(400,"All fields are required");
+
+    if(password.length<6 || password.length>15) 
+        throw new ApiError(400,"Password must be between 6 and 15 characters");
+
+    if(!/^[a-zA-Z0-9]+$/.test(username)) 
+        throw new ApiError(400,"Username must contain only letters and numbers");
+
+    if(!/^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$/.test(email)) 
+        throw new ApiError(400,"Invalid email");
+
+    if(!/^[0-9]{10}$/.test(phonenumber)) 
+        throw new ApiError(400,"Invalid phone number");
+
+
+    //find user
 
     const user = await User.findOne({email});
 
     if(user) throw new ApiError(400,"User already exists");
 
-    const newUser = await User.create({username,email,phonenumber,password});
+    
+    //generate otp
+    const otp = Math.floor(10000+Math.random()*90000).toString();
+    
+    //create user
+    const newUser = await User.create({
+        username,
+        email,
+        phonenumber,
+        password,
+        emailVerificationToken : otp,
+        emailVerificationExpiry : Date.now() + 24 * 60 * 60 * 1000 
+    });
 
+    //generate otp via email
+    await sendVerificationEmail(newUser.email,otp);
+
+    //save user
+    await newUser.save();
+
+    //generate accessToken and refreshToken
     const accessToken = newUser.generateAccessToken();
     const refreshToken = newUser.generateRefreshToken();
 
-    await newUser.save();
-
-    res.cookie("refreshToken",refreshToken,{
+    
+    //set cookie
+    res.cookie('refreshToken', refreshToken , {
         httpOnly : true,
         secure : true,
-        maxAge : 7*24*60*60*1000
+        sameSite : "strict",
+        maxAge : 7 * 24 * 60 * 60 * 1000
     });
 
+    //send response
     const response = new ApiResponse(201,{
         _id : newUser._id,
         username : newUser.username,
@@ -46,10 +85,18 @@ const signup = asyncHandler(async function (req,res) {
 })
 
 const login = asyncHandler(async function (req,res) {
+
+    // 1. find user
+    // 2. check password 
+    // 3. generate access and refresh tokens
+    // 4. send cookie
+    // 5. send response
+
     const {
         identifier,
         password
     } = req.body;
+
 
     const user = await User.findOne({
         $or : [
@@ -71,6 +118,7 @@ const login = asyncHandler(async function (req,res) {
     res.cookie('refreshToken', refreshToken , {
         httpOnly : true,
         secure : true,
+        sameSite : "strict",
         maxAge : 7 * 24 * 60 * 60 * 1000
     });
 
@@ -84,14 +132,56 @@ const login = asyncHandler(async function (req,res) {
 
     req.status(201).json(response);
 
+
 })
 const logout = asyncHandler(async function (req,res) {
-    
+
+    //1. clearcookies
+    //2. send a response
+
+    res.clearCookie("refreshtoken");
+    const response = new ApiResponse(201,"User logged out successfully");
+    res.status(201).json(response);
 })
 
+const verifyEmail = async function (req,res) {
+
+    //1. get the code from req.body
+    //2. find the user using the code and the expiry date 
+    //3. mark the user verified and set the code and expiry to undefined
+    //4. save the updates
+    //5. send the welcome email
+    //6. send response
+
+    const { code } = req.body;
+
+    const user = User.findOne({
+        emailVerificationToken : code,
+        emailVerificationExpiry : { $gt : Date.now() },
+    });
+
+    if(!user) throw new ApiError(400, "Invalid or Expired code");
+
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiry = undefined;
+
+    await user.save();
+
+    const response = new ApiResponse(201, "Email verified successfully");
+
+    res.status(201).json(response);
+
+}
+
+const forgotPassword = async function () {
+    
+}
 
 export {
     login,
     logout,
-    signup
+    signup,
+    verifyEmail,
+    forgotPassword
 };
