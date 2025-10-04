@@ -1,3 +1,5 @@
+import crypto from "crypto";
+import { ENV } from "../env.js";
 import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -171,8 +173,26 @@ const login = asyncHandler(async function (req,res) {
 
 })
 
-const forgotPassword = async function () {
-    
+const forgotPassword = async function (req,res) {
+    // get the email from req.body
+    // find the user
+    // update the resetpasword token and expiry and save the user
+    // send the forgot password email
+    const { email } = req.body;
+    const user = await User.findOne({ email });
+
+    if(!user) throw new ApiError(400, `User does not exist`);
+
+    user.resetPasswordToken = crypto.randomBytes(20).toString("hex");
+    user.resetPasswordExpiry = Date.now() + 1 * 60 * 60 * 1000 ;
+
+    await user.save();
+
+    await sendPasswordResetEmail(user.email , `${ENV.CLIENT_URL}/api/auth/reset-password/${user.resetPasswordToken}`);
+
+    const response = new ApiResponse(201,`Password reset email sent successfully`);
+
+    res.status(201).json(response);
 }
 
 const logout = asyncHandler(async function (req,res) {
