@@ -200,7 +200,7 @@ const logout = asyncHandler(async function (req,res) {
     res.status(201).json(response);
 })
 
-const resetPassword = async function (req,res) {
+const resetPassword = asyncHandler(async function (req,res) {
     const { token } = req.params;
     const { password } = req.body;
     const user = await User.findOne({
@@ -221,7 +221,15 @@ const resetPassword = async function (req,res) {
     const response = new ApiResponse(201 , `Password reset successfull`);
 
     res.status(201).json(response);
-}
+})
+
+const checkAuth = asyncHandler(async function (req,res) {
+    const user = User.findById(req.userId).select("-password");
+    if(!user) throw new ApiError(400,`User does not exist`);
+
+    const response = new ApiResponse(201,user);
+    res.status(201).json(response);
+})
 
 export {
     login,
@@ -229,5 +237,6 @@ export {
     signup,
     verifyEmail,
     forgotPassword,
-    resetPassword
+    resetPassword,
+    checkAuth
 };
