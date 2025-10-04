@@ -11,6 +11,7 @@ import
     sendVerificationEmail , 
     sendWelcomeEmail,
 } from "../emails/resend.js";
+import { error } from "console";
 
 const signup = asyncHandler(async function (req,res) {
 
@@ -131,22 +132,16 @@ const login = asyncHandler(async function (req,res) {
     // 5. send response
 
     const {
-        identifier,
+        email,
         password
     } = req.body;
 
 
-    const user = await User.findOne({
-        $or : [
-            { email : identifier },
-            { phonenumber : identifier },
-            { username : identifier },
-        ]
-    });
+    const user = await User.findOne({ email });
 
     if(!user) throw new ApiError(400,`User does not exist`);
 
-    const isPasswordMatched = await User.isPasswordValid(password);
+    const isPasswordMatched = await user.isPasswordValid(password);
 
     if(!isPasswordMatched) throw new ApiError(400 , `Invalid credentials`);
 
@@ -168,7 +163,7 @@ const login = asyncHandler(async function (req,res) {
         accessToken : accessToken,
     },`User logged in successfully`);
 
-    req.status(201).json(response);
+    res.status(201).json(response);
 
 
 })
@@ -205,8 +200,27 @@ const logout = asyncHandler(async function (req,res) {
     res.status(201).json(response);
 })
 
-const resetPassword = async function () {
-    
+const resetPassword = async function (req,res) {
+    const { token } = req.params;
+    const { password } = req.body;
+    const user = await User.findOne({
+        resetPasswordToken : token,
+        resetPasswordExpiry : { $gt : Date.now() }
+    })
+
+    if(!user) throw new ApiError(400,`User does not exist`);
+
+    user.password = password;
+    user.resetPasswordToken = undefined;
+    user.resetPasswordExpiry = undefined;
+
+    await user.save();
+
+    await sendPasswordSuccessEmail(user.email);
+
+    const response = new ApiResponse(201 , `Password reset successfull`);
+
+    res.status(201).json(response);
 }
 
 export {
