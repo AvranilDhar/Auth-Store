@@ -53,13 +53,13 @@ const sendPasswordSuccessEmail = async function (recipientEmail) {
     }
 }
 
-const sendWelcomeEmail = async function (recipientEmail,recipientName) {
+const sendWelcomeEmail = async function (recipientEmail,recipientName,websiteHomeUrl) {
     try {
         const response = await resend.emails.send({
             from: 'Acme <onboarding@resend.dev>',
             to: `${recipientEmail}`,
             subject: `Welcome Email`,
-            html: WELCOME_EMAIL_TEMPLATE.replace(`{UserName}`,recipientName),
+            html: WELCOME_EMAIL_TEMPLATE.replaceAll(`{username}`,recipientName).replace(`{website-home-url}`,websiteHomeUrl),
           });
 
           console.log( "Email sent successfully " , response );
