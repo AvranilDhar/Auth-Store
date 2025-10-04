@@ -114,7 +114,7 @@ const verifyEmail = async function (req,res) {
 
     await user.save();
 
-    await sendWelcomeEmail(user.email , user.username);
+    await sendWelcomeEmail(user.email , user.username ,`${ENV.CLIENT_URL}/`);
 
     const response = new ApiResponse(201, "Email verified successfully");
 
