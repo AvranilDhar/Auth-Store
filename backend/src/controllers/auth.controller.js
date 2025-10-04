@@ -2,9 +2,13 @@ import { User } from "../models/user.model.js";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { sendPasswordResetEmail } from "../emails/resend.js";
-import { sendPasswordSuccessEmail } from "../emails/resend.js";
-import { sendVerificationEmail } from "../emails/resend.js";
+import 
+{ 
+    sendPasswordResetEmail, 
+    sendPasswordSuccessEmail , 
+    sendVerificationEmail , 
+    sendWelcomeEmail,
+} from "../emails/resend.js";
 
 const signup = asyncHandler(async function (req,res) {
 
@@ -20,8 +24,8 @@ const signup = asyncHandler(async function (req,res) {
     if(!username || !email || !phonenumber || !password) 
         throw new ApiError(400,"All fields are required");
 
-    if(password.length<6 || password.length>15) 
-        throw new ApiError(400,"Password must be between 6 and 15 characters");
+    if(password.length<6) 
+        throw new ApiError(400,"Password must be greater than 6 characters");
 
     if(!/^[a-zA-Z0-9]+$/.test(username)) 
         throw new ApiError(400,"Username must contain only letters and numbers");
@@ -50,7 +54,7 @@ const signup = asyncHandler(async function (req,res) {
         phonenumber,
         password,
         emailVerificationToken : otp,
-        emailVerificationExpiry : Date.now() + 24 * 60 * 60 * 1000 
+        emailVerificationExpiry : Date.now() + 5 * 60 * 1000 
     });
 
     //generate otp via email
@@ -83,6 +87,38 @@ const signup = asyncHandler(async function (req,res) {
 
     res.status(201).json(response);
 })
+
+const verifyEmail = async function (req,res) {
+
+    //1. get the code from req.body
+    //2. find the user using the code and the expiry date 
+    //3. mark the user verified and set the code and expiry to undefined
+    //4. save the updates
+    //5. send the welcome email
+    //6. send response
+
+    const { code } = req.body;
+
+    const user = await User.findOne({
+        emailVerificationToken : code,
+        emailVerificationExpiry : { $gt : Date.now() },
+    });
+
+    if(!user) throw new ApiError(400, "Invalid or Expired code");
+
+    user.isVerified = true;
+    user.emailVerificationToken = undefined;
+    user.emailVerificationExpiry = undefined;
+
+    await user.save();
+
+    await sendWelcomeEmail(user.email , user.username);
+
+    const response = new ApiResponse(201, "Email verified successfully");
+
+    res.status(201).json(response);
+
+}
 
 const login = asyncHandler(async function (req,res) {
 
@@ -134,6 +170,11 @@ const login = asyncHandler(async function (req,res) {
 
 
 })
+
+const forgotPassword = async function () {
+    
+}
+
 const logout = asyncHandler(async function (req,res) {
 
     //1. clearcookies
@@ -144,37 +185,7 @@ const logout = asyncHandler(async function (req,res) {
     res.status(201).json(response);
 })
 
-const verifyEmail = async function (req,res) {
-
-    //1. get the code from req.body
-    //2. find the user using the code and the expiry date 
-    //3. mark the user verified and set the code and expiry to undefined
-    //4. save the updates
-    //5. send the welcome email
-    //6. send response
-
-    const { code } = req.body;
-
-    const user = User.findOne({
-        emailVerificationToken : code,
-        emailVerificationExpiry : { $gt : Date.now() },
-    });
-
-    if(!user) throw new ApiError(400, "Invalid or Expired code");
-
-    user.isVerified = true;
-    user.emailVerificationToken = undefined;
-    user.emailVerificationExpiry = undefined;
-
-    await user.save();
-
-    const response = new ApiResponse(201, "Email verified successfully");
-
-    res.status(201).json(response);
-
-}
-
-const forgotPassword = async function () {
+const resetPassword = async function () {
     
 }
 
@@ -183,5 +194,6 @@ export {
     logout,
     signup,
     verifyEmail,
-    forgotPassword
+    forgotPassword,
+    resetPassword
 };
