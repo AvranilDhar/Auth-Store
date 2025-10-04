@@ -8,7 +8,8 @@ const ENV = {
     REFRESHTOKEN_SECRET : process.env.REFRESHTOKEN_SECRET,
     ACCESSTOKEN_EXPIRY : process.env.ACCESSTOKEN_EXPIRY,
     REFRESHTOKEN_EXPIRY : process.env.REFRESHTOKEN_EXPIRY,
-    RESEND_KEY : process.env.RESEND_KEY
+    RESEND_KEY : process.env.RESEND_KEY,
+    CLIENT_URL : process.env.CLIENT_URL
 }
 
 export { ENV };
